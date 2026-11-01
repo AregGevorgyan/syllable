@@ -83,7 +83,7 @@
     if (text === '') {
       const p = document.createElement('div');
       p.className = 'placeholder';
-      p.textContent = 'Syllable boxes will appear here as you type.';
+      p.textContent = 'Syllables appear here.';
       frag.appendChild(p);
     } else {
       for (const line of text.split('\n')) {
