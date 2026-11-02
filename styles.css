@@ -9,6 +9,13 @@
   --s2: #eaf1fc;
   --s3: #fcf5e4;
   --s4: #f3eefc;
+
+  /* Vowel sounds: front vowels warm, back vowels cool, diphthongs in between */
+  --IY: #fbd6d3; --IH: #fce4d6; --EY: #fcecd0; --EH: #f8f1c8; --AE: #e8f3cc;
+  --AY: #d6efd6; --AA: #d2eee6; --AO: #d2ebf3; --OW: #d8e5fa; --UH: #dfdff9;
+  --UW: #e9dcf8; --OY: #dde4ea; --AW: #f3d6f0; --ER: #f1e3d2; --AH: #e4ddcf;
+  --schwa: #f2f2f2;
+  --serif: "EB Garamond", Garamond, "Times New Roman", serif;
   color-scheme: light;
 }
 
@@ -20,7 +27,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 18px/1.5 var(--serif);
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
@@ -40,9 +47,8 @@ body {
 }
 .brand h1 {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.25rem;
+  font-weight: 500;
 }
 
 .stats {
@@ -52,9 +58,9 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .stat { display: flex; align-items: baseline; gap: 6px; }
-.stat-value { font-size: 1rem; font-weight: 500; }
-.stat-label { font-size: .875rem; color: var(--muted); }
-.stat-main .stat-value { font-size: 2rem; font-weight: 300; letter-spacing: -0.02em; line-height: 1; }
+.stat-value { font-size: 1.1rem; font-weight: 500; }
+.stat-label { font-size: .95rem; font-style: italic; color: var(--muted); }
+.stat-main .stat-value { font-size: 2.4rem; font-weight: 400; line-height: 1; }
 
 /* ---------- Workspace ---------- */
 .workspace {
@@ -87,23 +93,24 @@ body {
 .pane:first-child .pane-head { padding-left: 0; }
 .pane-head h2 {
   margin: 0;
-  font-size: .75rem;
-  font-weight: 500;
+  font-size: .85rem;
+  font-weight: 400;
+  font-style: italic;
   color: var(--muted);
-  letter-spacing: .04em;
 }
+.status { margin-left: 8px; color: var(--faint); }
 
 .actions { display: flex; gap: 16px; }
 button {
   font: inherit;
-  font-size: .75rem;
+  font-size: .85rem;
   padding: 0;
   border: 0;
   background: none;
   color: var(--muted);
   cursor: pointer;
 }
-button:hover { color: var(--text); }
+button:hover, button[aria-pressed="true"] { color: var(--text); }
 button:focus-visible { outline: 1px solid var(--text); outline-offset: 4px; }
 
 textarea {
@@ -116,7 +123,7 @@ textarea {
   padding: 4px 24px 24px 0;
   background: transparent;
   color: var(--text);
-  font: 18px/2 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 21px/2 var(--serif);
 }
 textarea::placeholder { color: var(--faint); }
 
@@ -126,7 +133,7 @@ textarea::placeholder { color: var(--faint); }
   min-height: 0;
   overflow: auto;
   padding: 4px 0 24px;
-  font-size: 18px;
+  font-size: 21px;
 }
 
 .line {
@@ -140,8 +147,8 @@ textarea::placeholder { color: var(--faint); }
   justify-self: end;
   padding-right: 1em;
   color: var(--muted);
-  font-size: .75em;
-  font-variant-numeric: tabular-nums;
+  font-size: .8em;
+  font-variant-numeric: tabular-nums lining-nums;
   user-select: none;
 }
 .count.zero { color: var(--faint); }
@@ -171,10 +178,41 @@ textarea::placeholder { color: var(--faint); }
 .c3 { background: var(--s3); }
 .c4 { background: var(--s4); }
 
+.v-IY { --v: var(--IY); }
+.v-IH { --v: var(--IH); }
+.v-EY { --v: var(--EY); }
+.v-EH { --v: var(--EH); }
+.v-AE { --v: var(--AE); }
+.v-AY { --v: var(--AY); }
+.v-AA { --v: var(--AA); }
+.v-AO { --v: var(--AO); }
+.v-OW { --v: var(--OW); }
+.v-UH { --v: var(--UH); }
+.v-UW { --v: var(--UW); }
+.v-OY { --v: var(--OY); }
+.v-AW { --v: var(--AW); }
+.v-ER { --v: var(--ER); }
+.v-AH { --v: var(--AH); }
+.v-schwa { --v: var(--schwa); }
+[class*="v-"] { background: var(--v); }
+/* Unstressed syllables: same hue, paler */
+.syl.weak { background: color-mix(in srgb, var(--v) 45%, #fff); }
+.v-unknown { background: none; box-shadow: inset 0 0 0 1px var(--rule); }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 0 0 68px;
+  border-top: 1px solid var(--rule);
+  font-size: 15px;
+}
+.legend .syl { color: #555; }
+
 .placeholder {
   color: var(--faint);
   padding-left: 3.25em;
-  font-size: 18px;
+  font-size: 21px;
   line-height: 2;
 }
 
@@ -190,5 +228,6 @@ textarea::placeholder { color: var(--faint); }
   .output { min-height: 30vh; }
   .line { grid-template-columns: 2.25em 1fr; }
   .placeholder { padding-left: 2.25em; }
+  .legend { padding-left: 0; }
   .content { padding-right: 0; }
 }

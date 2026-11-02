@@ -2,7 +2,8 @@
   'use strict';
 
   const STORAGE_KEY = 'syllable-counter:text';
-  const COLORS = 5;
+  const MODE_KEY = 'syllable-counter:mode';
+  const PLAIN_COLORS = 5;
   const SAMPLE = [
     'The morning light spills over hills,',
     'a quiet river hums along.',
@@ -13,25 +14,54 @@
     'the numbers update as you type.'
   ].join('\n');
 
+  // Vowel sounds (ARPAbet) in legend order, with an example word for each.
+  const VOWELS = [
+    ['IY', 'see'], ['IH', 'sit'], ['EY', 'day'], ['EH', 'bed'], ['AE', 'cat'],
+    ['AY', 'my'], ['AA', 'hot'], ['AO', 'law'], ['OW', 'go'], ['UH', 'book'],
+    ['UW', 'blue'], ['OY', 'boy'], ['AW', 'now'], ['ER', 'her'], ['AH', 'but']
+  ];
+
   const input = document.getElementById('input');
   const output = document.getElementById('output');
+  const legend = document.getElementById('legend');
+  const status = document.getElementById('status');
+  const modeButtons = document.querySelectorAll('[data-mode]');
   const totalSyl = document.getElementById('total-syllables');
   const totalWords = document.getElementById('total-words');
   const totalLines = document.getElementById('total-lines');
 
-  // Cache tokenized lines: re-rendering a long text only re-splits new lines.
-  const lineCache = new Map();
-  function tokenizeLine(line) {
-    let tokens = lineCache.get(line);
-    if (!tokens) {
-      tokens = Syllables.tokenize(line);
-      if (lineCache.size > 5000) lineCache.clear();
-      lineCache.set(line, tokens);
+  let mode = 'sound';
+  try { mode = localStorage.getItem(MODE_KEY) || 'sound'; } catch (e) { /* storage unavailable */ }
+
+  // ---------- Word analysis ----------
+
+  // word -> { parts: [...], vowels: ['UW1', ...] | null, phones: string | null }
+  const wordCache = new Map();
+
+  function analyzeWord(word) {
+    let info = wordCache.get(word);
+    if (info) return info;
+
+    const ruleParts = Syllables.syllabify(word);
+    const prons = Pronouncing.phonesForWord(word);
+    if (prons.length === 0) {
+      info = { parts: ruleParts, vowels: null, phones: null };
+    } else {
+      // Prefer the pronunciation whose syllable count matches the spelling rules,
+      // so the boxes line up naturally ("every" as EH1 V R IY0).
+      const phones = prons.find(function (p) { return Pronouncing.syllableCount(p) === ruleParts.length; }) || prons[0];
+      const vowels = Pronouncing.vowels(phones);
+      const parts = vowels.length === ruleParts.length ? ruleParts : Syllables.syllabifyTo(word, vowels.length);
+      info = { parts: parts, vowels: vowels, phones: phones };
     }
-    return tokens;
+    if (wordCache.size > 20000) wordCache.clear();
+    wordCache.set(word, info);
+    return info;
   }
 
-  function renderLine(line) {
+  // ---------- Rendering ----------
+
+  function renderLine(line, used) {
     const row = document.createElement('div');
     row.className = 'line';
     const badge = document.createElement('span');
@@ -42,23 +72,39 @@
     let syllables = 0;
     let words = 0;
     let color = 0;
-    for (const tok of tokenizeLine(line)) {
+    for (const tok of Syllables.tokenize(line)) {
       if (tok.type === 'text') {
         content.appendChild(document.createTextNode(tok.text));
         continue;
       }
+      const info = analyzeWord(tok.text);
       words++;
-      syllables += tok.syllables.length;
+      syllables += info.parts.length;
+
       const word = document.createElement('span');
       word.className = 'word';
-      word.title = tok.syllables.join('·') + ' — ' + tok.syllables.length +
-        (tok.syllables.length === 1 ? ' syllable' : ' syllables');
-      for (const s of tok.syllables) {
+      word.title = info.parts.join('·') + ' — ' + info.parts.length +
+        (info.parts.length === 1 ? ' syllable' : ' syllables') +
+        (info.phones ? '\n' + info.phones : '\nnot in dictionary');
+
+      info.parts.forEach(function (s, i) {
         const box = document.createElement('span');
-        box.className = 'syl c' + (color++ % COLORS);
         box.textContent = s;
+        if (mode === 'plain') {
+          box.className = 'syl c' + (color++ % PLAIN_COLORS);
+        } else if (info.vowels && info.vowels[i]) {
+          const v = info.vowels[i];
+          const base = v.slice(0, 2);
+          const stress = v.slice(2);
+          const schwa = base === 'AH' && stress === '0';
+          box.className = 'syl ' + (schwa ? 'v-schwa' : 'v-' + base + (stress === '0' ? ' weak' : ''));
+          used.add(schwa ? 'schwa' : base);
+        } else {
+          box.className = 'syl v-unknown';
+          used.add('unknown');
+        }
         word.appendChild(box);
-      }
+      });
       content.appendChild(word);
     }
 
@@ -72,12 +118,32 @@
     badge.title = syllables + (syllables === 1 ? ' syllable' : ' syllables') + ' in this line';
 
     row.append(badge, content);
-    return { row, syllables, words };
+    return { row: row, syllables: syllables, words: words };
+  }
+
+  function renderLegend(used) {
+    legend.replaceChildren();
+    if (mode !== 'sound' || !Pronouncing.isLoaded() || used.size === 0) {
+      legend.hidden = true;
+      return;
+    }
+    const items = VOWELS.filter(function (v) { return used.has(v[0]); })
+      .map(function (v) { return ['v-' + v[0], v[1]]; });
+    if (used.has('schwa')) items.push(['v-schwa', 'a·bout']);
+    if (used.has('unknown')) items.push(['v-unknown', 'unknown']);
+    for (const item of items) {
+      const chip = document.createElement('span');
+      chip.className = 'syl ' + item[0];
+      chip.textContent = item[1];
+      legend.appendChild(chip);
+    }
+    legend.hidden = false;
   }
 
   function render() {
     const text = input.value;
     const frag = document.createDocumentFragment();
+    const used = new Set();
     let syllables = 0, words = 0, lines = 0;
 
     if (text === '') {
@@ -87,7 +153,7 @@
       frag.appendChild(p);
     } else {
       for (const line of text.split('\n')) {
-        const r = renderLine(line);
+        const r = renderLine(line, used);
         frag.appendChild(r.row);
         syllables += r.syllables;
         words += r.words;
@@ -96,6 +162,7 @@
     }
 
     output.replaceChildren(frag);
+    renderLegend(used);
     totalSyl.textContent = syllables.toLocaleString();
     totalWords.textContent = words.toLocaleString();
     totalLines.textContent = lines.toLocaleString();
@@ -112,6 +179,15 @@
     });
   }
 
+  // ---------- Controls ----------
+
+  function setMode(m) {
+    mode = m;
+    modeButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mode === mode)); });
+    try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* storage unavailable */ }
+    render();
+  }
+
   // Keep the breakdown roughly aligned with where you are in the editor.
   function syncScroll() {
     const max = input.scrollHeight - input.clientHeight;
@@ -121,6 +197,9 @@
 
   input.addEventListener('input', schedule);
   input.addEventListener('scroll', syncScroll);
+  modeButtons.forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.dataset.mode); });
+  });
   document.getElementById('clear-btn').addEventListener('click', function () {
     input.value = '';
     schedule();
@@ -135,5 +214,15 @@
   let saved = null;
   try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) { /* storage unavailable */ }
   input.value = saved !== null ? saved : SAMPLE;
-  render();
+  setMode(mode === 'plain' ? 'plain' : 'sound');
+
+  // Load the pronouncing dictionary; until then, counts use spelling rules only.
+  status.textContent = 'loading sounds…';
+  Pronouncing.load('data/cmudict.txt').then(function () {
+    status.textContent = '';
+    wordCache.clear();
+    render();
+  }, function () {
+    status.textContent = 'sounds unavailable';
+  });
 })();

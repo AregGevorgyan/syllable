@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Syllable Counter</title>
   <meta name="description" content="Type or paste text and see syllable counts per line, with every word broken into syllables, in real time.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
   <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="data/cmudict.txt" as="fetch" crossorigin>
 </head>
 <body>
   <header class="topbar">
@@ -44,13 +48,19 @@
 
     <section class="pane">
       <div class="pane-head">
-        <h2>Syllables</h2>
+        <h2>Syllables <span id="status" class="status"></span></h2>
+        <div class="actions" role="group" aria-label="Color by">
+          <button type="button" data-mode="sound" aria-pressed="true">Sound</button>
+          <button type="button" data-mode="plain" aria-pressed="false">Plain</button>
+        </div>
       </div>
       <div id="output" class="output" aria-label="Syllable breakdown"></div>
+      <div id="legend" class="legend" aria-label="Vowel sound colors" hidden></div>
     </section>
   </main>
 
   <script src="js/syllables.js"></script>
+  <script src="js/pronouncing.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

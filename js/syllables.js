@@ -316,6 +316,62 @@
     return parts;
   }
 
+  // Best place to cut one syllable chunk in two (or -1), used by syllabifyTo.
+  function splitPoint(part) {
+    let s = '';
+    for (let i = 0; i < part.length; i++) s += baseChar(part[i]);
+    const n = s.length;
+    const isV = function (k) { return /[aeiouyæøœ]/.test(s[k]) && !(k === 0 && s[k] === 'y'); };
+    let best = -1, bestScore = Infinity;
+    function consider(cut, penalty) {
+      if (cut <= 0 || cut >= n) return;
+      const score = Math.abs(cut - n / 2) + penalty;
+      if (score < bestScore) { best = cut; bestScore = score; }
+    }
+    for (let k = 1; k < n; k++) {
+      if (isV(k - 1) && !isV(k) && k + 1 < n && isV(k + 1)) consider(k, 0);           // fi|re
+      if (isV(k - 1) && !isV(k) && k + 2 < n && !isV(k + 1) && isV(k + 2)) consider(k + 1, 0.5); // mid-cluster
+      if (isV(k - 1) && isV(k)) consider(k, 1);                                       // ho|ur
+    }
+    if (best < 0) {
+      // Syllabic consonant ending with no second vowel letter: pris|m
+      for (let k = n - 1; k > 0; k--) if (isV(k)) { if (k < n - 2) best = n - 1; break; }
+    }
+    return best;
+  }
+
+  /**
+   * Split a word into exactly `target` syllables when possible, starting from
+   * the rule-based split. Used when a pronouncing dictionary knows the count.
+   */
+  function syllabifyTo(word, target) {
+    const parts = syllabify(word);
+    if (!target || target < 1) return parts;
+    while (parts.length > target) {
+      let best = 0, bestLen = Infinity;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const len = parts[i].length + parts[i + 1].length;
+        if (len < bestLen) { best = i; bestLen = len; }
+      }
+      parts.splice(best, 2, parts[best] + parts[best + 1]);
+    }
+    while (parts.length < target) {
+      const order = parts.map(function (_, i) { return i; })
+        .sort(function (a, b) { return parts[b].length - parts[a].length; });
+      let split = false;
+      for (const i of order) {
+        const cut = splitPoint(parts[i]);
+        if (cut > 0) {
+          parts.splice(i, 1, parts[i].slice(0, cut), parts[i].slice(cut));
+          split = true;
+          break;
+        }
+      }
+      if (!split) break;
+    }
+    return parts;
+  }
+
   /** Number of syllables in a single word. */
   function count(word) {
     return syllabify(word).length;
@@ -342,5 +398,5 @@
     return tokens;
   }
 
-  return { syllabify: syllabify, count: count, tokenize: tokenize };
+  return { syllabify: syllabify, syllabifyTo: syllabifyTo, count: count, tokenize: tokenize };
 });
