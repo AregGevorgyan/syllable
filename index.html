@@ -12,34 +12,11 @@
   <link rel="preload" href="data/cmudict.txt" as="fetch" crossorigin>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <h1>Syllable Counter</h1>
-    </div>
-    <div class="stats" aria-live="polite">
-      <div class="stat stat-main">
-        <span class="stat-value" id="total-syllables">0</span>
-        <span class="stat-label">syllables</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value" id="total-words">0</span>
-        <span class="stat-label">words</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value" id="total-lines">0</span>
-        <span class="stat-label">lines</span>
-      </div>
-    </div>
-  </header>
-
   <main class="workspace">
     <section class="pane">
       <div class="pane-head">
-        <h2>Text</h2>
-        <div class="actions">
-          <button type="button" id="sample-btn">Sample</button>
-          <button type="button" id="clear-btn">Clear</button>
-        </div>
+        <span></span>
+        <button type="button" id="clear-btn" title="Clear text (undo with ⌘Z / Ctrl+Z)">Clear <kbd id="clear-key">⌘K</kbd></button>
       </div>
       <textarea id="input" spellcheck="true" autocomplete="off"
         placeholder="Start typing or paste a poem, lyrics, or any text…"
@@ -48,11 +25,12 @@
 
     <section class="pane">
       <div class="pane-head">
-        <h2>Syllables <span id="status" class="status"></span></h2>
-        <div class="actions" role="group" aria-label="Color by">
-          <button type="button" data-mode="sound" aria-pressed="true">Sound</button>
-          <button type="button" data-mode="plain" aria-pressed="false">Plain</button>
+        <div class="stats" aria-live="polite">
+          <span class="stat stat-main"><span class="stat-value" id="total-syllables">0</span> <span class="stat-label">syllables</span></span>
+          <span class="stat"><span class="stat-value" id="total-words">0</span> <span class="stat-label">words</span></span>
+          <span class="stat"><span class="stat-value" id="total-lines">0</span> <span class="stat-label">lines</span></span>
         </div>
+        <span id="status" class="status"></span>
       </div>
       <div id="output" class="output" aria-label="Syllable breakdown"></div>
       <div id="legend" class="legend" aria-label="Vowel sound colors" hidden></div>

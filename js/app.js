@@ -2,18 +2,6 @@
   'use strict';
 
   const STORAGE_KEY = 'syllable-counter:text';
-  const MODE_KEY = 'syllable-counter:mode';
-  const PLAIN_COLORS = 5;
-  const SAMPLE = [
-    'The morning light spills over hills,',
-    'a quiet river hums along.',
-    'Count every beat the meter fills,',
-    'each syllable a step in song.',
-    '',
-    'Paste your own lyrics, haiku, or prose here —',
-    'the numbers update as you type.'
-  ].join('\n');
-
   // Vowel sounds (ARPAbet) in legend order, with an example word for each.
   const VOWELS = [
     ['IY', 'see'], ['IH', 'sit'], ['EY', 'day'], ['EH', 'bed'], ['AE', 'cat'],
@@ -25,13 +13,9 @@
   const output = document.getElementById('output');
   const legend = document.getElementById('legend');
   const status = document.getElementById('status');
-  const modeButtons = document.querySelectorAll('[data-mode]');
   const totalSyl = document.getElementById('total-syllables');
   const totalWords = document.getElementById('total-words');
   const totalLines = document.getElementById('total-lines');
-
-  let mode = 'sound';
-  try { mode = localStorage.getItem(MODE_KEY) || 'sound'; } catch (e) { /* storage unavailable */ }
 
   // ---------- Word analysis ----------
 
@@ -71,7 +55,6 @@
 
     let syllables = 0;
     let words = 0;
-    let color = 0;
     for (const tok of Syllables.tokenize(line)) {
       if (tok.type === 'text') {
         content.appendChild(document.createTextNode(tok.text));
@@ -90,9 +73,7 @@
       info.parts.forEach(function (s, i) {
         const box = document.createElement('span');
         box.textContent = s;
-        if (mode === 'plain') {
-          box.className = 'syl c' + (color++ % PLAIN_COLORS);
-        } else if (info.vowels && info.vowels[i]) {
+        if (info.vowels && info.vowels[i]) {
           const v = info.vowels[i];
           const base = v.slice(0, 2);
           const stress = v.slice(2);
@@ -123,7 +104,7 @@
 
   function renderLegend(used) {
     legend.replaceChildren();
-    if (mode !== 'sound' || !Pronouncing.isLoaded() || used.size === 0) {
+    if (!Pronouncing.isLoaded() || used.size === 0) {
       legend.hidden = true;
       return;
     }
@@ -181,11 +162,17 @@
 
   // ---------- Controls ----------
 
-  function setMode(m) {
-    mode = m;
-    modeButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mode === mode)); });
-    try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* storage unavailable */ }
-    render();
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  document.getElementById('clear-key').textContent = isMac ? '⌘K' : 'Ctrl+K';
+
+  // Clear via the editing command so the browser's undo can restore the text.
+  function clearText() {
+    input.focus();
+    input.select();
+    if (!document.execCommand('delete')) {
+      input.value = '';
+      schedule();
+    }
   }
 
   // Keep the breakdown roughly aligned with where you are in the editor.
@@ -197,24 +184,18 @@
 
   input.addEventListener('input', schedule);
   input.addEventListener('scroll', syncScroll);
-  modeButtons.forEach(function (b) {
-    b.addEventListener('click', function () { setMode(b.dataset.mode); });
-  });
-  document.getElementById('clear-btn').addEventListener('click', function () {
-    input.value = '';
-    schedule();
-    input.focus();
-  });
-  document.getElementById('sample-btn').addEventListener('click', function () {
-    input.value = SAMPLE;
-    schedule();
-    input.focus();
+  document.getElementById('clear-btn').addEventListener('click', clearText);
+  document.addEventListener('keydown', function (e) {
+    if ((isMac ? e.metaKey : e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      clearText();
+    }
   });
 
   let saved = null;
   try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) { /* storage unavailable */ }
-  input.value = saved !== null ? saved : SAMPLE;
-  setMode(mode === 'plain' ? 'plain' : 'sound');
+  if (saved) input.value = saved;
+  render();
 
   // Load the pronouncing dictionary; until then, counts use spelling rules only.
   status.textContent = 'loading sounds…';

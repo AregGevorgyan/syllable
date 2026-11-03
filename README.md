@@ -5,9 +5,11 @@ A small web app: type or paste text and, in real time, see
 - the **total syllable count** (plus words and lines) at the top,
 - the **syllable count for each line** in a badge at the left of that line,
 - every **word split into its syllables** as light-colored boxes,
-- each syllable **colored by its vowel sound** (all the "ee" sounds share a color, all the "ay" sounds another, and so on), so rhyme and assonance stand out. Unstressed syllables are paler, and the schwa is grey. A legend lists the sounds in your text. Switch to **Plain** for alternating colors.
+- each syllable **colored by its vowel sound** (all the "ee" sounds share a color, all the "ay" sounds another, and so on), so rhyme and assonance stand out. Unstressed syllables are paler, and the schwa is grey. A legend lists the sounds in your text.
 
 Live at https://areggevorgyan.github.io/syllable/
+
+Press **⌘K** (Ctrl+K on Windows/Linux) to clear the text. **⌘Z** brings it back.
 
 No build step and no dependencies. Open `index.html` in a browser, or serve the folder:
 
